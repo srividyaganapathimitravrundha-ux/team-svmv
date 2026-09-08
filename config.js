@@ -1,5 +1,5 @@
 const SVMV_CONFIG = {
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzvxknvq5SLwxva5L6JAG29yVv2hcyOXYSv5mKv8IYMpsL8GepbcBWbFIcNtvrmLOeF/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzvxknvq5SLwxva5L6JAG29yYv2hcyOXYSv5mKv8IYMpsL8GepbcBWbFIcNtvrmLOeF/exec",
 
   whatsapp: "https://whatsapp.com/channel/0029Vb9FveI0Qeag067s2z2i",
 
