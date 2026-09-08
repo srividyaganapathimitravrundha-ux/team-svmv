@@ -12,11 +12,81 @@ function showPayment(name,mobile,amount){const url=makeUpiUrl(amount);$('#paymen
 function openLightbox(index){galleryIndex=index;const item=galleryItems[index];if(!item)return;$('#lightboxImage').src=item.src;$('#lightboxImage').alt=item.caption||'Team SVMV memory';$('#lightboxCaption').textContent=item.caption||'';$('#lightbox').classList.remove('hidden');document.body.style.overflow='hidden'}
 function closeLightbox(){$('#lightbox').classList.add('hidden');document.body.style.overflow=''}
 function nextImage(dir){if(!galleryItems.length)return;galleryIndex=(galleryIndex+dir+galleryItems.length)%galleryItems.length;openLightbox(galleryIndex)}
-function renderGallery(items){galleryItems=items||[];const grid=$('#galleryGrid');if(!galleryItems.length){grid.innerHTML=`<div class="gallery-placeholder">${translations[currentLang].galleryPlaceholder}</div>`;return}grid.innerHTML=galleryItems.map((x,i)=>`<figure class="gallery-item" data-index="${i}"><img src="${x.src}" alt="${escapeHtml(x.caption||'Team SVMV memory')}" loading="lazy"><figcaption>${escapeHtml(x.caption||'')}</figcaption></figure>`).join('');grid.querySelectorAll('.gallery-item').forEach(el=>el.addEventListener('click',()=>openLightbox(Number(el.dataset.index))))}
-function escapeHtml(v){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-async function loadRemoteContent(){if(!SVMV_CONFIG.APPS_SCRIPT_URL)return;try{const res=await fetch(SVMV_CONFIG.APPS_SCRIPT_URL+'?action=site');if(!res.ok)return;const data=await res.json();if(data.config){Object.assign(SVMV_CONFIG,data.config)}if(Array.isArray(data.gallery))renderGallery(data.gallery)}catch(e){console.warn('Google Sheets content not loaded:',e)}}
-$('#languageToggle').addEventListener('click',()=>{setLanguage(currentLang==='en'?'kn':'en');updateCountdown();renderGallery(galleryItems)});
-$('#contributionForm').addEventListener('submit',e=>{e.preventDefault();const fd=new FormData(e.currentTarget);const name=fd.get('name').trim(),mobile=fd.get('mobile').trim(),amount=Number(fd.get('amount'));if(!name||!mobile||!(amount>0))return;showPayment(name,mobile,amount)});
-$('#openProgramme').addEventListener('click',()=>{$('#lightboxImage').src=SVMV_CONFIG.programmeImage;$('#lightboxImage').alt='2026 Team SVMV Ganeshotsava programme';$('#lightboxCaption').textContent='2026 Festival Programme';$('#lightbox').classList.remove('hidden');document.body.style.overflow='hidden'});
-$('#closeLightbox').addEventListener('click',closeLightbox);$('#prevImage').addEventListener('click',()=>nextImage(-1));$('#nextImage').addEventListener('click',()=>nextImage(1));document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();if(e.key==='ArrowLeft')nextImage(-1);if(e.key==='ArrowRight')nextImage(1)});
-setLanguage(localStorage.getItem('svmv-lang')||'en');initQRs();updateCountdown();setInterval(updateCountdown,1000);loadRemoteContent();
+function renderGallery(items){
+  galleryItems = items || [];
+
+  const tabs = $('#galleryTabs');
+  const grid = $('#galleryGrid');
+
+  if (!galleryItems.length) {
+    tabs.innerHTML = '';
+    grid.innerHTML = `
+      <div class="gallery-placeholder">
+        ${translations[currentLang].galleryPlaceholder}
+      </div>`;
+    return;
+  }
+
+  // Get only years that actually have photos
+  const years = [...new Set(
+    galleryItems
+      .map(item => String(item.Year || '').trim())
+      .filter(Boolean)
+  )];
+
+  // Create year tabs
+  tabs.innerHTML = years.map((year, index) => `
+    <button
+      class="gallery-tab ${index === 0 ? 'active' : ''}"
+      data-year="${year}">
+      ${year}
+    </button>
+  `).join('');
+
+  function showYear(year) {
+    const filtered = galleryItems.filter(
+      item => String(item.Year || '').trim() === year
+    );
+
+    grid.innerHTML = filtered.map(item => {
+      const globalIndex = galleryItems.indexOf(item);
+
+      return `
+        <figure
+          class="gallery-item"
+          data-index="${globalIndex}">
+          <img
+            src="${item.src}"
+            alt="${item.caption || 'Team SVMV'}"
+            loading="lazy">
+          <figcaption>
+            ${item.caption || ''}
+          </figcaption>
+        </figure>
+      `;
+    }).join('');
+
+    // Open full-screen image viewer
+    grid.querySelectorAll('.gallery-item').forEach(item => {
+      item.addEventListener('click', () => {
+        galleryIndex = Number(item.dataset.index);
+        openLightbox();
+      });
+    });
+  }
+
+  // First available year
+  showYear(years[0]);
+
+  // Year tab clicks
+  tabs.querySelectorAll('.gallery-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.querySelectorAll('.gallery-tab')
+        .forEach(button => button.classList.remove('active'));
+
+      tab.classList.add('active');
+
+      showYear(tab.dataset.year);
+    });
+  });
+}
