@@ -91,5 +91,36 @@ function renderGallery(items){
   });
 }
 
+async function loadRemoteContent(){
+  if(!SVMV_CONFIG.APPS_SCRIPT_URL) return;
+
+  try{
+    const res = await fetch(
+      SVMV_CONFIG.APPS_SCRIPT_URL + '?action=site'
+    );
+
+    if(!res.ok){
+      console.warn('Apps Script request failed:', res.status);
+      return;
+    }
+
+    const data = await res.json();
+
+    if(data.config){
+      Object.assign(SVMV_CONFIG, data.config);
+    }
+
+    if(Array.isArray(data.gallery)){
+      renderGallery(data.gallery);
+    }
+
+  }catch(error){
+    console.warn(
+      'Google Sheets content not loaded:',
+      error
+    );
+  }
+}
+
 initQRs();
 loadRemoteContent();
