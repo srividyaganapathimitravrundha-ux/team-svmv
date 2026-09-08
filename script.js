@@ -90,3 +90,6 @@ function renderGallery(items){
     });
   });
 }
+
+initQRs();
+loadRemoteContent();
