@@ -49,30 +49,51 @@ function renderGallery(items){
     );
 
     grid.innerHTML = filtered.map(item => {
-      const globalIndex = galleryItems.indexOf(item);
+  const globalIndex = galleryItems.indexOf(item);
 
-      return `
-        <figure
-          class="gallery-item"
-          data-index="${globalIndex}">
-          <img
-            src="${item.src}"
-            alt="${item.caption || 'Team SVMV'}"
-            loading="lazy">
-          <figcaption>
-            ${item.caption || ''}
-          </figcaption>
-        </figure>
-      `;
-    }).join('');
+  if (item.type === 'video') {
+    return `
+      <figure
+        class="gallery-item gallery-video"
+        data-index="${globalIndex}">
+        <iframe
+          src="${item.src}"
+          title="${item.caption || 'Team SVMV Video'}"
+          allow="autoplay; fullscreen"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+        <figcaption>
+          ${item.caption || ''}
+        </figcaption>
+      </figure>
+    `;
+  }
+
+  return `
+    <figure
+      class="gallery-item"
+      data-index="${globalIndex}">
+      <img
+        src="${item.src}"
+        alt="${item.caption || 'Team SVMV'}"
+        loading="lazy">
+      <figcaption>
+        ${item.caption || ''}
+      </figcaption>
+    </figure>
+  `;
+}).join('');
 
     // Open full-screen image viewer
     grid.querySelectorAll('.gallery-item').forEach(item => {
-      item.addEventListener('click', () => {
-        galleryIndex = Number(item.dataset.index);
-        openLightbox();
-      });
-    });
+  if (item.classList.contains('gallery-video')) return;
+
+  item.addEventListener('click', () => {
+    galleryIndex = Number(item.dataset.index);
+    openLightbox(galleryIndex);
+  });
+});
   }
 
   // First available year
