@@ -477,27 +477,44 @@ async function loadRemoteContent() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Initialize QR codes
-  initQRs();
-
-  // Load Google Sheets / Apps Script content
-  loadRemoteContent();
+document.addEventListener('DOMContentLoaded', async () => {
+  // -----------------------------
+  // INITIALIZE QR CODES
+  // -----------------------------
+  if (typeof QRCode !== 'undefined') {
+    try {
+      initQRs();
+    } catch (error) {
+      console.warn('QR initialization failed:', error);
+    }
+  }
 
   // -----------------------------
   // LANGUAGE TOGGLE
   // -----------------------------
   const languageToggle = $('#languageToggle');
 
-  const savedLanguage = localStorage.getItem('svmv-lang') || 'en';
+  const savedLanguage =
+    localStorage.getItem('svmv-lang') === 'kn' ? 'kn' : 'en';
 
   setLanguage(savedLanguage);
 
   if (languageToggle) {
     languageToggle.addEventListener('click', () => {
       const newLanguage = currentLang === 'en' ? 'kn' : 'en';
+
       setLanguage(newLanguage);
+      updateCountdown();
     });
+  }
+
+  // -----------------------------
+  // LOAD GOOGLE SHEETS CONTENT
+  // -----------------------------
+  try {
+    await loadRemoteContent();
+  } catch (error) {
+    console.warn('Remote content initialization failed:', error);
   }
 
   // -----------------------------
@@ -505,7 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // -----------------------------
   updateCountdown();
 
-  setInterval(updateCountdown, 1000);
+  setInterval(() => {
+    updateCountdown();
+  }, 1000);
 
   // -----------------------------
   // CONTRIBUTION FORM
@@ -544,26 +563,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const closeButton = $('#closeLightbox');
   const prevButton = $('#prevImage');
   const nextButton = $('#nextImage');
+  const lightbox = $('#lightbox');
 
   if (closeButton) {
     closeButton.addEventListener('click', closeLightbox);
   }
 
   if (prevButton) {
-    prevButton.addEventListener('click', () => {
+    prevButton.addEventListener('click', (event) => {
+      event.stopPropagation();
       nextImage(-1);
     });
   }
 
   if (nextButton) {
-    nextButton.addEventListener('click', () => {
+    nextButton.addEventListener('click', (event) => {
+      event.stopPropagation();
       nextImage(1);
     });
   }
 
-  // Close lightbox when clicking outside the image
-  const lightbox = $('#lightbox');
-
+  // Close when clicking outside the image
   if (lightbox) {
     lightbox.addEventListener('click', (event) => {
       if (event.target === lightbox) {
@@ -572,10 +592,80 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Close lightbox with Escape key
+  // -----------------------------
+  // KEYBOARD CONTROLS
+  // -----------------------------
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closeLightbox();
+    if (lightbox && !lightbox.classList.contains('hidden')) {
+
+      if (event.key === 'Escape') {
+        closeLightbox();
+
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        nextImage(-1);
+
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        nextImage(1);
+      }
     }
   });
+
+  // -----------------------------
+  // MOBILE SWIPE CONTROLS
+  // -----------------------------
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  if (lightbox) {
+
+    lightbox.addEventListener(
+      'touchstart',
+      (event) => {
+
+        if (!event.touches.length) return;
+
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+
+      },
+      { passive: true }
+    );
+
+    lightbox.addEventListener(
+      'touchend',
+      (event) => {
+
+        if (!event.changedTouches.length) return;
+
+        const touchEndX =
+          event.changedTouches[0].clientX;
+
+        const touchEndY =
+          event.changedTouches[0].clientY;
+
+        const deltaX =
+          touchEndX - touchStartX;
+
+        const deltaY =
+          touchEndY - touchStartY;
+
+        // Only treat predominantly horizontal movement as swipe
+        if (
+          Math.abs(deltaX) > 50 &&
+          Math.abs(deltaX) > Math.abs(deltaY)
+        ) {
+
+          if (deltaX < 0) {
+            nextImage(1);
+          } else {
+            nextImage(-1);
+          }
+
+        }
+      },
+      { passive: true }
+    );
+  }
 });
